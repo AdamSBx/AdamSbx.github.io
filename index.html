@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<body onresize="onResize()" onload="onResize()">
+
+<h1 id="h1" onclick="input(event)">add button</h1>
+
+<div id="buttons"></div>
+
+<!--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-->
+<script>
+
+var myViews = [];
+var colors = ["red","blue","yellow","green"];
+
+
+// async function readAudio(url) {
+//   let audioData = await fetch(url).then(r => r.arrayBuffer());
+//   let audioCtx = new AudioContext({sampleRate:8000});
+//   // audio is resampled to the AudioContext's sampling rate
+//   let decodedData = await audioCtx.decodeAudioData(audioData);
+//   console.log(decodedData.length, decodedData.duration, decodedData.sampleRate, decodedData.numberOfChannels);
+//   let float32Data = decodedData.getChannelData(0); // Float32Array for channel 0
+//   processAudio(float32Data);  // PCM Float32 is between -1 to +1
+// }
+// readAudio("samples/C_Down.wav");
+
+
+
+const audio = new Audio("samples/C_Down.wav");
+audio.loop = false;
+audio.preservesPitch = false;
+audio.playbackRate = 0.7;
+
+
+function loadAudio(url) {
+  audio.pause();
+  audio.currentTime = 0;
+  audio.play();
+}
+
+loadAudio();
+
+
+
+
+
+
+
+
+//===============================================
+
+class MyView {
+  constructor(parentElement) {
+    this.mCanvas = document.createElement("canvas"); // canvas element owned by this view
+    this.mCanvas.onclick = this.MyView_input;
+    this.mIsPressed = false;
+    this.colorIdx = 0;
+    parentElement.appendChild(this.mCanvas);
+  }
+
+  //=============================================
+
+  MyView_setRect = (l,t,r,b) => {
+    this.mCanvas.style.position = "absolute";
+    let w = r - l;
+    let h = b - t;
+    this.mCanvas.style.left = l + "px";
+    this.mCanvas.style.top = t + "px";
+    this.mCanvas.style.width = w + "px";
+    this.mCanvas.style.height = h + "px";
+    this.mCanvas.width = w;
+    this.mCanvas.height = h;
+    this.MyView_draw();
+  }
+
+  //=============================================
+
+  MyView_input = (event) => {
+    this.mIsPressed = !this.mIsPressed;
+    if (this.mIsPressed) { requestAnimationFrame(this.MyView_intervalMethod); }
+    this.MyView_draw();
+    //alert("w: " + this.mCanvas.width);
+  }
+
+  //=============================================
+  
+  MyView_intervalMethod = () => {
+    this.colorIdx = (this.colorIdx + 1) % colors.length;
+    this.MyView_draw();
+    if (this.mIsPressed) { requestAnimationFrame(this.MyView_intervalMethod); }
+  }
+
+  //=============================================
+
+  MyView_draw = () => {
+    const ctx = this.mCanvas.getContext("2d");
+    ctx.clearRect(0, 0, this.mCanvas.width, this.mCanvas.height);
+
+    // fill
+    ctx.rect(0, 0, this.mCanvas.width, this.mCanvas.height);
+    //ctx.fillStyle = this.mIsPressed ? "red" : "gray";
+    ctx.fillStyle = colors[this.colorIdx];
+    ctx.fill();
+
+    // outline
+    ctx.beginPath();
+    ctx.rect(0, 0, this.mCanvas.width, this.mCanvas.height);
+    ctx.stroke();
+  }
+}
+
+//===============================================
+
+function input(event) {
+  // myViews.push(new MyView(document.getElementById("buttons"))); // MyView adds a div element in the constructor
+  // document.title = "Button amount: " + myViews.length;
+  // onResize();
+
+  loadAudio();
+}
+
+//===============================================
+
+function onResize() {
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  document.title = "w:" + w + " h:" + h;
+
+  let btnW = w / myViews.length;
+  let top = document.getElementById("h1").style.bottom;
+  for (let i = 0; i < myViews.length; i++) {
+    myViews[i].MyView_setRect(btnW * i, top, btnW * i + btnW, h);
+  };
+}
+
+</script> 
+<!--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-->
+
+
+</body>
+</html>
