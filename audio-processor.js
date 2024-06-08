@@ -156,36 +156,11 @@ class AudioProcessor extends AudioWorkletProcessor {
         if (!v.mIsPlaying) { continue; }
         let sampleL = 0.0, sampleR = 0.0;
 
-        const int_part = Math.floor(v.pos);
-        const fractional_part = v.pos - int_part;
         const noteBuffer = this.mNoteBuffers[v.mNoteBufferIdx];
 
-        if (int_part + 2 < noteBuffer.mSampleEndPos) {
-          let xm1 = (int_part > 0 ? noteBuffer.mBufferL[int_part - 1] : 0);
-          let x_0 = noteBuffer.mBufferL[int_part + 0];
-          let x_1 = noteBuffer.mBufferL[int_part + 1];
-          let x_2 = noteBuffer.mBufferL[int_part + 2];
-
-          // compute hermite
-          let c = (x_1 - xm1) * 0.5;
-          let o = x_0 - x_1;
-          let w = c + o;
-          let a = w + o + (x_2 - x_0) * 0.5;
-          let b = w + a;
-          sampleL = ((((a * fractional_part) - b) * fractional_part + c) * fractional_part + x_0);
-
-          xm1 = (int_part > 0 ? noteBuffer.mBufferR[int_part - 1] : 0);
-          x_0 = noteBuffer.mBufferR[int_part + 0];
-          x_1 = noteBuffer.mBufferR[int_part + 1];
-          x_2 = noteBuffer.mBufferR[int_part + 2];
-
-          // compute hermite
-          c = (x_1 - xm1) * 0.5;
-          o = x_0 - x_1;
-          w = c + o;
-          a = w + o + (x_2 - x_0) * 0.5;
-          b = w + a;
-          sampleR = ((((a * fractional_part) - b) * fractional_part + c) * fractional_part + x_0);
+        if (v.sample_count < noteBuffer.mSampleEndPos) {
+          sampleL = noteBuffer.mBufferL[v.sample_count];
+          sampleR = noteBuffer.mBufferR[v.sample_count];
         }
         else {
           v.mIsPlaying = false;
