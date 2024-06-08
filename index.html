@@ -7,7 +7,6 @@
 </head>
 <body>
     <button id="startAudioButton">Start Audio</button>
-    <button id="loadSamplesButton">Load Samples</button>
     <button id="noteOnButton">Note On</button>
 
     <script>
@@ -78,7 +77,6 @@
         }
 
         document.getElementById('startAudioButton').addEventListener('click', startAudio);
-        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
         document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
         document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
             // Prevent the default touch behavior to avoid triggering `click` or other unintended events
