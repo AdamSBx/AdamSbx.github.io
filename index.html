@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioWorklet Example</title>
+</head>
+<body>
+    <button id="startAudioButton">Start Audio</button>
+    <button id="loadSamplesButton">Load Samples</button>
+    <button id="noteOnButton">Note On</button>
+
+    <script>
+        if (!window.AudioWorklet) { alert('AudioWorklet is not supported in this browser.'); }
+
+        let sampler;
+
+        async function loadWavFiles(audioContext) {
+            let rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
+            let fileNames = ["C_Down","E_Down","G_Down","A_Down","C_Up","E_Up","G_Up","A_Up"];
+
+            for (let i = 0; i < 8; i++) {
+                let url = "samples/" + fileNames[i] + ".wav";
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+
+                // https://developer.mozilla.org/en-US/docs/Web/API/AudioBuffer
+                // https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/decodeAudioData
+                // this also resamples the audio to the sample rate of the audio context xxx remove resample stuff from note On...
+                const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                // Send the decoded audio buffer to the processor
+                // data: channelLeft, channelRight, rootNote, sampleIdx
+                sampler.port.postMessage({ type: 'loadBuffer', channelLeft: audioBuffer.getChannelData(0), channelRight: audioBuffer.getChannelData(1), rootNote: rootNotes[i], sampleIdx: i});
+            }
+            //alert("samples loaded");
+        }
+
+        async function startAudio() {
+            try {
+                const audioContext = new AudioContext();
+                await audioContext.audioWorklet.addModule('audio-processor.js');
+
+                // https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletNode/AudioWorkletNode
+                const options = {
+                    numberOfInputs: 0,
+                    numberOfOutputs: 1,
+                    outputChannelCount: [2] // set to 2 channels (stereo)
+                };
+                sampler = new AudioWorkletNode(audioContext, 'audio-processor', options);
+                sampler.connect(audioContext.destination);
+
+                sampler.port.onmessage = (msg) => {
+                    alert(event.data);
+                    // console.log('Message from AudioWorkletProcessor:', msg);
+                };
+
+                //alert("audio started");
+
+                await loadWavFiles(audioContext);
+            } catch (error) { 
+                alert(error);
+            }
+        }
+        //startAudio().catch(console.error); // only works when called from button click
+
+        async function noteOn() {
+            // noteOn(data.noteNr, data.stringNr, data.playStyle)
+            if (sampler) {
+                //var note = Math.floor(60 + Math.random() * 12 - 6);
+                var note = 60;
+                sampler.port.postMessage({type: "noteOn", noteNr: note + 7, stringNr: 0, playStyle: 0});
+                sampler.port.postMessage({type: "noteOn", noteNr: note, stringNr: 1, playStyle: 0});
+                sampler.port.postMessage({type: "noteOn", noteNr: note + 4, stringNr: 2, playStyle: 0});
+                sampler.port.postMessage({type: "noteOn", noteNr: note + 12, stringNr: 3, playStyle: 0});
+                //sampler.port.postMessage({type: "noiseOn"});
+            }
+        }
+
+        document.getElementById('startAudioButton').addEventListener('click', startAudio);
+        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
+        document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
+    </script>
+</body>
+</html>
