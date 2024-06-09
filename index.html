@@ -1,43 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AudioWorklet Example</title>
+    <title>Play Multiple Audio Files</title>
 </head>
 <body>
-    <button id="startAudioButton">Start Audio</button>
-    <button id="loadSamplesButton">Load Samples</button>
-    <button id="noteOnButton">Note On</button>
+    <button onclick="loadAndPlayAudio(0)">Play Audio 1</button>
+    <button onclick="loadAndPlayAudio(1)">Play Audio 2</button>
+    <button onclick="loadAndPlayAudio(2)">Play Audio 3</button>
+    <button onclick="loadAndPlayAudio(3)">Play Audio 4</button>
+    <button onclick="loadAndPlayAudio(-1)">Play All</button>
 
     <script>
-        var samples = [];
-
-        function loadWavFiles() {
-            let rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
-            let fileNames = ["C_Down","E_Down","G_Down","A_Down"];
-
-            for (let i = 0; i < 4; i++) {
-                let url = "samples/" + fileNames[i] + ".wav";
-                samples.push(new Audio(url));
+        // Create an AudioContext
+        var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Array to hold the decoded audio buffers
+        var audioBuffers = [];
+        
+        // Array of audio file URLs
+        var audioFiles = [
+            'samples/C_Down.wav',
+            'samples/E_Down.wav',
+            'samples/G_Down.wav',
+            'samples/A_Down.wav'
+        ];
+        
+        // Function to load audio files
+        function loadAudioFiles() {
+            audioFiles.forEach((file, index) => {
+                fetch(file)
+                    .then(response => response.arrayBuffer())
+                    .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                    .then(decodedData => {
+                        audioBuffers[index] = decodedData;
+                        console.log(`Audio file ${index + 1} loaded`);
+                    })
+                    .catch(error => console.error('Error loading audio file:', error));
+            });
+        }
+        
+        // Function to play audio from the buffers
+        function loadAndPlayAudio(index) {
+            if (index < 0) {
+                for (let i = 0; i < audioBuffers.length; i++) {
+                    if (audioBuffers[i]) {
+                        var source = audioContext.createBufferSource();
+                        source.buffer = audioBuffers[i];
+                        source.connect(audioContext.destination);
+                        source.start(0);
+                    }
+                    else {
+                        console.log('Audio file not loaded yet.');
+                    }
+                }
+            }
+            else {
+                if (audioBuffers[index]) {
+                    var source = audioContext.createBufferSource();
+                    source.buffer = audioBuffers[index];
+                    source.connect(audioContext.destination);
+                    source.start(0);
+                } else {
+                    console.log('Audio file not loaded yet.');
+                }
             }
         }
-
-        function noteOn() {
-            for (let i = 0; i < samples.length; i++) {
-                samples[i].currentTime = 0; // set the playback pos in ms
-                samples[i].play();
-            }
-        }
-
-        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
-
-        document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
-        document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
-            // Prevent the default touch behavior to avoid triggering `click` or other unintended events
-            event.preventDefault();
-            noteOn();
-        });
+        
+        // Load the audio files when the page loads
+        window.onload = loadAudioFiles;
     </script>
 </body>
 </html>
