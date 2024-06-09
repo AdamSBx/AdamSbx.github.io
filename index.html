@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioWorklet Example</title>
+</head>
+<body>
+    <button id="startAudioButton">Start Audio</button>
+    <button id="loadSamplesButton">Load Samples</button>
+    <button id="noteOnButton">Note On</button>
+
+    <script>
+        var samples = [];
+
+        function loadWavFiles() {
+            let rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
+            let fileNames = ["C_Down","E_Down","G_Down","A_Down"];
+
+            for (let i = 0; i < 4; i++) {
+                let url = "samples/" + fileNames[i] + ".wav";
+                samples.push(new Audio(url));
+            }
+        }
+
+        function noteOn() {
+            for (let i = 0; i < samples.length; i++) {
+                samples[i].currentTime = 0; // set the playback pos in ms
+                samples[i].play();
+            }
+        }
+
+        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
+
+        document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
+        document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
+            // Prevent the default touch behavior to avoid triggering `click` or other unintended events
+            event.preventDefault();
+            noteOn();
+        });
+    </script>
+</body>
+</html>
