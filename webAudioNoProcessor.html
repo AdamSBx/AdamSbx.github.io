@@ -8,11 +8,16 @@
 <body>
     <script src="addNavigationavBar.js"></script>
 
-    <button onclick="loadAndPlayAudio(0)">Play Audio 1</button>
-    <button onclick="loadAndPlayAudio(1)">Play Audio 2</button>
-    <button onclick="loadAndPlayAudio(2)">Play Audio 3</button>
-    <button onclick="loadAndPlayAudio(3)">Play Audio 4</button>
+    <h1> Web Audio Without Extending The Processor </h1>
+    <h2> how to use: ... </h2>
+
+    <button onclick="loadAndPlayAudio(0)">Play String 1</button>
+    <button onclick="loadAndPlayAudio(1)">Play String 2</button>
+    <button onclick="loadAndPlayAudio(2)">Play String 3</button>
+    <button onclick="loadAndPlayAudio(3)">Play String 4</button>
     <button onclick="loadAndPlayAudio(-1)">Play All</button>
+
+    <button id="noteOnButton">Play All (down+touch)</button>
 
     <script>
         // Create an AudioContext
@@ -29,20 +34,24 @@
             'samples/A_Down.wav'
         ];
         
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         // Function to load audio files
         function loadAudioFiles() {
             audioFiles.forEach((file, index) => {
                 fetch(file)
                     .then(response => response.arrayBuffer())
                     .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                    .then(decodedData => {
-                        audioBuffers[index] = decodedData;
-                        console.log(`Audio file ${index + 1} loaded`);
-                    })
+                    .then(decodedData => { audioBuffers[index] = decodedData; })
                     .catch(error => console.error('Error loading audio file:', error));
             });
         }
-        
+
+        loadAudioFiles();
+        //window.onload = loadAudioFiles;
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         // Function to play audio from the buffers
         function loadAndPlayAudio(index) {
             if (index < 0) {
@@ -69,9 +78,16 @@
                 }
             }
         }
-        
-        // Load the audio files when the page loads
-        window.onload = loadAudioFiles;
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        document.getElementById('noteOnButton').addEventListener('mousedown',  function(event) {
+            loadAndPlayAudio(-1);
+        });
+        document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
+            event.preventDefault(); // Prevent the default touch behavior to avoid triggering `click` or other unintended events
+            loadAndPlayAudio(-1);
+        });
     </script>
 </body>
 </html>

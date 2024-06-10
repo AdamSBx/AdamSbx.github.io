@@ -8,9 +8,18 @@
 <body>
     <script src="addNavigationavBar.js"></script>
 
+    <h1> Web Audio Extending The Processor </h1>
+    <h2> PRESS "Start Audio" TO LOAD THE AUDIO PROCESSOR FIRST </h2>
+
     <button id="startAudioButton">Start Audio</button>
-    <button id="loadSamplesButton">Load Samples</button>
-    <button id="noteOnButton">Note On</button>
+
+    <button onclick="noteOn(0)">Play String 1</button>
+    <button onclick="noteOn(1)">Play String 2</button>
+    <button onclick="noteOn(2)">Play String 3</button>
+    <button onclick="noteOn(3)">Play String 4</button>
+    <button onclick="noteOn(-1)">Play All</button>
+
+    <button id="noteOnButton">Play All (down+touch)</button>
 
     <script>
         if (!window.AudioWorklet) { alert('AudioWorklet is not supported in this browser.'); }
@@ -54,7 +63,6 @@
 
                 sampler.port.onmessage = (msg) => {
                     alert(event.data);
-                    // console.log('Message from AudioWorkletProcessor:', msg);
                 };
 
                 //alert("audio started");
@@ -66,27 +74,27 @@
         }
         //startAudio().catch(console.error); // only works when called from button click
 
-        async function noteOn() {
+        // pass 0 - 3 to play a single string, pass -1 to play all strings
+        async function noteOn(stringNr) {
             // noteOn(data.noteNr, data.stringNr, data.playStyle)
             if (sampler) {
                 //var note = Math.floor(60 + Math.random() * 12 - 6);
                 var note = 60;
-                sampler.port.postMessage({type: "noteOn", noteNr: note + 7, stringNr: 0, playStyle: 0});
-                sampler.port.postMessage({type: "noteOn", noteNr: note, stringNr: 1, playStyle: 0});
-                sampler.port.postMessage({type: "noteOn", noteNr: note + 4, stringNr: 2, playStyle: 0});
-                sampler.port.postMessage({type: "noteOn", noteNr: note + 12, stringNr: 3, playStyle: 0});
-                //sampler.port.postMessage({type: "noiseOn"});
+                if (stringNr == 0 || stringNr == -1) { sampler.port.postMessage({type: "noteOn", noteNr: note + 7, stringNr: 0, playStyle: 0}); }
+                if (stringNr == 1 || stringNr == -1) { sampler.port.postMessage({type: "noteOn", noteNr: note, stringNr: 1, playStyle: 0}); }
+                if (stringNr == 2 || stringNr == -1) { sampler.port.postMessage({type: "noteOn", noteNr: note + 4, stringNr: 2, playStyle: 0}); }
+                if (stringNr == 3 || stringNr == -1) { sampler.port.postMessage({type: "noteOn", noteNr: note + 12, stringNr: 3, playStyle: 0}); }
             }
         }
 
         document.getElementById('startAudioButton').addEventListener('click', startAudio);
-        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
 
-        document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
+        document.getElementById('noteOnButton').addEventListener('mousedown',  function(event) {
+            noteOn(-1);
+        });
         document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
-            // Prevent the default touch behavior to avoid triggering `click` or other unintended events
-            event.preventDefault();
-            noteOn();
+            event.preventDefault(); // Prevent the default touch behavior to avoid triggering `click` or other unintended events
+            noteOn(-1);
         });
     </script>
 </body>

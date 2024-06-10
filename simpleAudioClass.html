@@ -8,15 +8,23 @@
 <body>
     <script src="addNavigationavBar.js"></script>
 
-    <button id="startAudioButton">Start Audio</button>
-    <button id="loadSamplesButton">Load Samples</button>
-    <button id="noteOnButton">Note On</button>
+    <h1> Simple "Audio" Object </h1>
+    <h2> how to use: ... </h2>
+
+    <button onclick="noteOn(0)">Play String 1</button>
+    <button onclick="noteOn(1)">Play String 2</button>
+    <button onclick="noteOn(2)">Play String 3</button>
+    <button onclick="noteOn(3)">Play String 4</button>
+    <button onclick="noteOn(-1)">Play All</button>
+
+    <button id="noteOnButton">Play All (down+touch)</button>
 
     <script>
         var samples = [];
 
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         function loadWavFiles() {
-            let rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
             let fileNames = ["C_Down","E_Down","G_Down","A_Down"];
 
             for (let i = 0; i < 4; i++) {
@@ -25,20 +33,34 @@
             }
         }
 
-        function noteOn() {
-            for (let i = 0; i < samples.length; i++) {
-                samples[i].currentTime = 0; // set the playback pos in ms
-                samples[i].play();
+        loadWavFiles();
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        // pass 0 - 3 to play a single string, pass -1 to play all strings
+        function noteOn(stringNr) {
+            // play single string
+            if (stringNr > -1 && stringNr < 4) {
+                samples[stringNr].currentTime = 0; // set the playback pos in ms
+                samples[stringNr].play();
+            }
+            // play all strings
+            else {
+                for (let i = 0; i < samples.length; i++) {
+                    samples[i].currentTime = 0; // set the playback pos in ms
+                    samples[i].play();
+                }
             }
         }
 
-        document.getElementById('loadSamplesButton').addEventListener('click', loadWavFiles);
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        document.getElementById('noteOnButton').addEventListener('mousedown', noteOn);
+        document.getElementById('noteOnButton').addEventListener('mousedown',  function(event) {
+            noteOn(-1);
+        });
         document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
-            // Prevent the default touch behavior to avoid triggering `click` or other unintended events
-            event.preventDefault();
-            noteOn();
+            event.preventDefault(); // Prevent the default touch behavior to avoid triggering `click` or other unintended events
+            noteOn(-1);
         });
     </script>
 </body>
