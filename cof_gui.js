@@ -1,32 +1,66 @@
 
 const canvas = document.createElement("canvas");
-canvas.style.backgroundColor = "black";
-canvas.onclick = input;
+canvas.style.backgroundColor = "#242424";
 document.body.appendChild(canvas);
 
+//=============================================== add mouse event listeners
+canvas.addEventListener('mousedown',  function(event) {
+    mMouseDown = true;
+    input(event);
+});
+canvas.addEventListener('mousemove', function(event) {
+    if (mMouseDown) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
+});
+canvas.addEventListener('mouseup',  function(event) {
+    mMouseDown = false;
+    mLastTouchedString = -1;
+});
+
+//=============================================== add touch event listeners
+canvas.addEventListener('touchstart', function(event) {
+    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
+    mMouseDown = true;
+    input(event);
+});
+canvas.addEventListener('touchmove',  function(event) {
+    input(event); // xxx check if click was on strings to avoid chord buttn press via drag xxx
+    mLastTouchedString = -1;
+});
+canvas.addEventListener('touchend',  function(event) {
+    mMouseDown = false;
+    mLastTouchedString = -1;
+});
+
+//===============================================
 onload = function () {
-    setRect(0, 200, 400, 600);
+    setRect(0, 100, 400, 600);
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 /** local positions of the circle, updated in setRect() */
-var cofL = 0, cofT = 0, cofR = 0, cofB = 0, cofMidX = 0, cofMidY = 0;
+let cofL = 0, cofT = 0, cofR = 0, cofB = 0, cofMidX = 0, cofMidY = 0;
 
-var mInnerRadius = 30, mMidRadius = 60, mOuterRadius = 90; // updated in setRect()
-var outerArcWidth = 1, innerArcWidth = 1; // updated in setRect()
+let mInnerRadius = 30, mMidRadius = 60, mOuterRadius = 90; // updated in setRect()
+let outerArcWidth = 1, innerArcWidth = 1; // updated in setRect()
 const PIbySix = Math.PI / 6;
 const outerText = ["C","G","D","A","E","B","F#","Db","Ab","Eb","Bb","F"];
 const innerText = ["a","e","b","f#","c#","g#","d#","bb","f","c","g","d"];
 
+/** used to determine whether a "mousemove" event is a drag or not */
+let mMouseDown = false;
+
 /** 0 to 23 */
-var mLastPressedBtnIdx = 0;
+let mLastPressedBtnIdx = 0;
 
 /** -1 = outside of circle, -2 = middle, 0 to 23 = chord buttons */
-var mLastClickId = 0;
+let mLastClickId = 0;
 
 /** number of frets visible in the chord charts */
 const mFretsNum = 4;
+
+/** name of the font used for drawing the chord and note names */
+let fontName = "Arial";
 
 /** offset from the root notes (mRootNotes = [7,0,4,9]) */
 const mChords = [
@@ -63,47 +97,65 @@ const mRootNotes = [7,0,4,9]; // G, C, E, A
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function input(event) {
-    var xGlobalPos = event.clientX, yGlobalPos = event.clientY;
-    var xLocalToClickedElement = event.offsetX, yLocalToClickedElement = event.offsetY;
+    //let xGlobalPos = event.clientX, yGlobalPos = event.clientY;
+    let xLocalToClickedElement = event.offsetX, yLocalToClickedElement = event.offsetY;
 
     // -2 if pos was in the middle and -1 if on the outside
     mLastClickId = get_chord_btn_at_position(xLocalToClickedElement, yLocalToClickedElement);
 
     if (mLastClickId > -1 && mLastClickId < 24) {
         mLastPressedBtnIdx = mLastClickId;
-        drawCircleOdFifths();
+        drawCircleOfFifths();
+        for (let s = 0; s < 4; s++) {
+            startStringVibration(s, s == 3); // s == 3 to save unnecessary redraws
+        }
     }
 
     // strings panel
     if (mLastClickId == -1) {
-        if (xLocalToClickedElement > stringsL && xLocalToClickedElement < stringsR) {
-            if (yLocalToClickedElement > stringsT && yLocalToClickedElement < stringsB) {
-                startStringVibration(1, true);
-            }
-        }
+        stringsRectInput(xLocalToClickedElement, yLocalToClickedElement);
     }
 }
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function drawCircleOdFifths() { // uses local coordinates
+function stringsRectInput(x, y) {
+    let string = -1;
+    let h = (stringsB - stringsT) / 3;
+
+    for (let s = 0; s < 4; s++) {
+        if (Math.abs(y - (stringsT + h * s)) < mTriggerSizeHorizontalMode) {
+            string = s;
+            break;
+        }
+    }
+    if (string != mLastTouchedString) {
+        mLastTouchedString = string;
+
+        if (string > -1) { startStringVibration(string, true); }
+    }
+}
+
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function drawCircleOfFifths() { // uses local coordinates
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, stringsT); // not sure if this is very useful here xxx
 
     //=========================================== fill the circles
     ctx.beginPath();
     ctx.arc(cofMidX, cofMidY, mOuterRadius, 0, 2 * Math.PI);
-    ctx.fillStyle = 'gray';
+    ctx.fillStyle = 'DarkGrey';
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(cofMidX, cofMidY, mMidRadius, 0, 2 * Math.PI);
-    ctx.fillStyle = 'blue';
+    ctx.fillStyle = 'Grey';
     ctx.fill();
 
     ctx.beginPath();
     ctx.arc(cofMidX, cofMidY, mInnerRadius, 0, 2 * Math.PI);
-    ctx.fillStyle = 'gray';
+    ctx.fillStyle = canvas.style.backgroundColor;
     ctx.fill();
 
     //=========================================== draw the pressed chord button
@@ -158,7 +210,7 @@ function drawCircleOdFifths() { // uses local coordinates
     let x, y;
 
     // draw outer text
-    ctx.font = outerArcWidth * 0.5 + 'px Arial'; // set in setRect() ? xxx
+    ctx.font = outerArcWidth * 0.5 + 'px ' + fontName; // set in setRect() ? xxx
     for (let i = 0; i < 12; i++) {
         x = cofMidX + (mOuterRadius - outerArcWidth * 0.5) * Math.cos(PIbySix * (i - 3));
         y = cofMidY + (mOuterRadius - outerArcWidth * 0.5) * Math.sin(PIbySix * (i - 3));
@@ -166,7 +218,7 @@ function drawCircleOdFifths() { // uses local coordinates
     }
 
     // inner text
-    ctx.font = innerArcWidth * 0.42 + 'px Arial'; // set in setRect() ? xxx
+    ctx.font = innerArcWidth * 0.42 + 'px ' + fontName; // set in setRect() ? xxx
     for (let i = 0; i < 12; i++) {
         x = cofMidX + (mInnerRadius + innerArcWidth * 0.5) * Math.cos(PIbySix * (i - 3));
         y = cofMidY + (mInnerRadius + innerArcWidth * 0.5) * Math.sin(PIbySix * (i - 3));
@@ -176,7 +228,7 @@ function drawCircleOdFifths() { // uses local coordinates
     //=========================================== draw the middle chord chart
     if (true) {
         ctx.fillStyle = 'red'; // for the dots
-        ctx.strokeStyle = 'black'; // for the lines
+        ctx.strokeStyle = 'gray'; // for the lines
 
         let mChartLineW = 2;
         let w = Math.round(mInnerRadius * 0.82);
@@ -233,16 +285,29 @@ const noteNames = [
 let stringsL = 0, stringsR = 0, stringsT = 0, stringsB = 0;     // used for horizontal mode
 let stringsL2 = 0, stringsR2 = 0, stringsT2 = 0, stringsB2 = 0; // used for vertical mode
 
+/** time in milliseconds (Date.now()) when the string was last played for each string*/
 let mVibrationStartTimes = [0, 0, 0, 0];
+
+/** vibration duration of the strings in milliseconds */
 let mVibrationDurationMs = 1700;
-let mVibrationDistanceVerticalMode = 20;   // updated is set_rect()
-let mVibrationDistanceHorizontalMode = 20; // updated is set_rect()
 
-let mTriggerSizeVerticalMode = 1;   // set in setStringSpacing()
-let mTriggerSizeHorizontalMode = 1; // set in setStringSpacing()
+/** vibration distance of the strings in pixel, updated in setRect() */
+let mVibrationDistanceVerticalMode = 20, mVibrationDistanceHorizontalMode = 20;
 
-/** use setStringSpacing() to set this or call setRect() after changing (which calls setStringSpacing())*/
+/** trigger size of a single string in pixel, updated in setStringSpacing() */
+let mTriggerSizeVerticalMode = 1, mTriggerSizeHorizontalMode = 1;
+
+/** size of the note names next to the strings in pixel set in setStringSpacing() */
+let mVerticalModeTextSize = 0, mHorizontalModeTextSize = 0;
+
+/** normalized float use setStringSpacing() to set this or call setRect() after changing (which calls setStringSpacing()) */
 let mStringSpacing = 0.5;
+
+/** used to avoid triggering the same string multiple times on drag input, reset on mouse up (set to -1) */
+let mLastTouchedString = -1;
+
+/** xxx */
+let mVerticalMode = false;
 
 /** 17 is the amount of cycles per second
  * if the cycles per second are for example 30 or 60 on 60Hz screen, the vibration will be not visible (or almost)
@@ -261,11 +326,22 @@ function drawStrings() {
 
     //=========================================== draw the note names
     ctx.fillStyle = "gray";
+
+    if (mVerticalMode) {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = mVerticalModeTextSize + 'px ' + fontName;
+    }
+    else {
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.font = mHorizontalModeTextSize + 'px ' + fontName;
+    }
+
     for (let i = 0; i < 4; i++) {
         let idx = mRootNotes[i] + mChords[mLastPressedBtnIdx][i];
         y = stringsT + h * i;
         ctx.fillText(noteNames[idx], stringsL, y);
-        //canvas.drawText(noteNames[idx], stringsL, y - mHorizontalModeTextSize * 0.3, mTextPaint);
     }
 
     //=========================================== draw the strings
@@ -288,10 +364,11 @@ function drawStrings() {
     if (redraw) { requestAnimationFrame(drawStrings); }
 }
 
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function startStringVibration(stringNr) {
-    mVibrationStartTimes[stringNr] = Date.now();
-    requestAnimationFrame(drawStrings);
+function startStringVibration(stringNr_int, redraw_bool) {
+    mVibrationStartTimes[stringNr_int] = Date.now();
+    if (redraw_bool) { requestAnimationFrame(drawStrings); }
 }
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -328,20 +405,19 @@ function setRect(L, T, R, B) {
 
     setStringSpacing(mStringSpacing);
 
-    drawCircleOdFifths();
+    drawCircleOfFifths();
     drawStrings();
 }
 
-function setStringSpacing(normalizedValue) {
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function setStringSpacing(normalizedValue) {
     mStringSpacing = Math.max(Math.min(normalizedValue, 1), 0);
     let horizontalModeSpacing = 0.15 + mStringSpacing * 0.65;
     let verticalModeSpacing = 0.15 + mStringSpacing * 0.5;
-
     let distanceFromCircleToEdge = (cofT + cofB) * 0.5 - mOuterRadius;
     let y = cofB - distanceFromCircleToEdge;
     let availableHeight = canvas.height - y;
-
     const yMiddle = y + availableHeight * 0.5;
     const h = availableHeight * horizontalModeSpacing;
 
@@ -358,8 +434,7 @@ function setStringSpacing(normalizedValue) {
     stringsT2 = yMiddle - availableHeight * 0.35;
     stringsB2 = yMiddle + availableHeight * 0.35;
 
-    //================================================================
-    // update the values for horizontal mode
+    //================================================================ update the values for horizontal mode
     let spacePerString = (stringsB - stringsT) / 3;
     mVibrationDistanceHorizontalMode = Math.max(Math.min((stringsR - stringsL) * 0.03, spacePerString * 0.25), 1);
     mTriggerSizeHorizontalMode = 0.5 * spacePerString;
@@ -367,15 +442,13 @@ function setStringSpacing(normalizedValue) {
     // set text the size fo horizontal mode, reduce the factor as mStringSpacing increases to avoid oversized text
     mHorizontalModeTextSize = (0.5 - mStringSpacing * 0.2) * spacePerString;
 
-    //================================================================
-    // update the values for vertical mode
-
+    //================================================================ update the values for vertical mode
     let spacing = Math.pow(1 - mStringSpacing, 3);
     spacePerString = (stringsR2 - stringsL2) / 3;
     mVibrationDistanceVerticalMode = Math.max(Math.min((stringsB2 - stringsT2) * 0.03, spacePerString * 0.25), 1);
     mTriggerSizeVerticalMode = 0.5 * spacePerString;
 
-    // set text the size fo vertical mode, reduce the factor as mStringSpacing increases to avoid oversized text
+    // set text the size for vertical mode, reduce the factor as mStringSpacing increases to avoid oversized text
     mVerticalModeTextSize = (0.5 - mStringSpacing * 0.2) * spacePerString;
 
     //================================================================
@@ -400,7 +473,7 @@ function get_chord_btn_at_position(x, y) {
     if (angle < 0) { angle += Math.PI * 2; }
 
     btn = (angle / (Math.PI * 2) * 12);
-    btn -= 2.5; // subtract 3 because index 0 is on the left but we need it on top
+    btn -= 2.5; // subtract 2.5 because index 0 is on the left but we need it on top
     btn = Math.floor(btn);
 
     if (btn < 0) { btn += 12; }
