@@ -151,7 +151,7 @@ class AudioProcessor extends AudioWorkletProcessor {
     for (let s = 0; s < nFrames; s++) {
       let total_sampleL = 0, total_sampleR = 0;
 
-      for (let i = 0; i < this.mVoices.length; i++) {
+      for (let i = 0; i < 1; i++) {
         const v = this.mVoices[i];
         if (!v.mIsPlaying) { continue; }
         let sampleL = 0.0, sampleR = 0.0;

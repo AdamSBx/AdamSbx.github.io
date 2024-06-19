@@ -19,73 +19,115 @@
     <button id="noteOnButton">Play All (down+touch)</button>
 
     <script>
-        // Create an AudioContext
         var audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Array to hold the decoded audio buffers
+        /** Array to hold the decoded audio buffers */
         var audioBuffers = [];
-        
-        // Array of audio file URLs
-        var audioFiles = [
-            'samples/C_Down.wav',
-            'samples/E_Down.wav',
-            'samples/G_Down.wav',
-            'samples/A_Down.wav'
-        ];
-        
-        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        const rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
+        const rootNoteFrequencies = [0,0,0,0,0,0,0,0];
+        for (let i = 0; i < rootNotes.length; i++) { rootNoteFrequencies[i] = noteToFreq(rootNotes[i]); }
+
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        // sequence stuff
+
+        // const arrayOfPairs = [
+        //     { key: 1, value: 'a' },
+        //     { key: 2, value: 'b' },
+        //     { key: 3, value: 'c' }
+        // ];
+
+        let mSequence = [0,1,2,3];
+        let mCurrentSequenceStep = 0;
+        let mTimeoutId = null;
+        let mLoopSequence = false;
+        let mStepDurationMs = 30;
+
+        function proceedSequencePlayback() {
+            clearTimeout(mTimeoutId);
+            loadAndPlayAudio(mSequence[mCurrentSequenceStep], null, false);
+
+            if (++mCurrentSequenceStep >= mSequence.length) {
+                if (mLoopSequence) {
+                    mCurrentSequenceStep = 0;
+                }
+                else {
+                    return; // return to avoid the following setTimeout() call
+                }
+            }
+
+            mTimeoutId = setTimeout(proceedSequencePlayback, mStepDurationMs);
+        }
+
+        function startSequencePlayback() {
+            clearTimeout(mTimeoutId);
+            mCurrentSequenceStep = 0;
+            proceedSequencePlayback();
+            //mTimeoutId = setTimeout(proceedSequencePlayback, mStepDurationMs);
+        }
+
+        function stopSequencePlayback() {
+            clearTimeout(mTimeoutId);
+        }
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         // Function to load audio files
         function loadAudioFiles() {
-            audioFiles.forEach((file, index) => {
-                fetch(file)
+            const audioFiles = ['C_Down','E_Down','G_Down','A_Down','C_Up','E_Up','G_Up','A_Up'];
+
+            for (let i = 0; i < audioFiles.length; i++) {
+                fetch("samples/" + audioFiles[i] + ".wav")
                     .then(response => response.arrayBuffer())
                     .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                    .then(decodedData => { audioBuffers[index] = decodedData; })
+                    .then(decodedData => { audioBuffers[i] = decodedData; })
                     .catch(error => console.error('Error loading audio file:', error));
-            });
+            }
         }
 
         loadAudioFiles();
         //window.onload = loadAudioFiles;
 
-        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        // 8.1758 = the frequency of c-2 or key 0
+        function noteToFreq(noteNr) { return 8.1758 * Math.pow(2.0, noteNr / 12.0); }
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        function getPlaybackRateForNote(stringNr, noteNr) {
+            return noteToFreq(noteNr) / rootNoteFrequencies[stringNr];
+        }
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         // Function to play audio from the buffers
-        function loadAndPlayAudio(index) {
-            if (index < 0) {
-                for (let i = 0; i < audioBuffers.length; i++) {
-                    if (audioBuffers[i]) {
-                        var source = audioContext.createBufferSource();
-                        source.buffer = audioBuffers[i];
-                        source.connect(audioContext.destination);
-                        source.start(0);
-                    }
-                    else {
-                        console.log('Audio file not loaded yet.');
-                    }
-                }
-            }
-            else {
-                if (audioBuffers[index]) {
-                    var source = audioContext.createBufferSource();
-                    source.buffer = audioBuffers[index];
-                    source.connect(audioContext.destination);
-                    source.start(0);
-                } else {
-                    console.log('Audio file not loaded yet.');
-                }
+        function loadAndPlayAudio(stringNr, noteNr, isUpstroke) {
+            if (noteNr == null) { noteNr = rootNotes[stringNr]; } // root note as default if no noteNr was passed
+            let bufferIdx = (isUpstroke ? 4 : 0) + stringNr;
+            if (audioBuffers[bufferIdx]) {
+                var source = audioContext.createBufferSource();
+                source.buffer = audioBuffers[bufferIdx];
+                source.playbackRate.value = getPlaybackRateForNote(stringNr, noteNr);
+                source.connect(audioContext.destination);
+                source.start(0);
+            } else {
+                console.log('Audio file not loaded yet.');
             }
         }
 
-        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        // event.button describes the mouse button that was clicked 0 is left, 1 is middle, 2 is right
 
         document.getElementById('noteOnButton').addEventListener('mousedown',  function(event) {
-            loadAndPlayAudio(-1);
+            startSequencePlayback();
         });
         document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
             event.preventDefault(); // Prevent the default touch behavior to avoid triggering `click` or other unintended events
-            loadAndPlayAudio(-1);
+            startSequencePlayback();
         });
     </script>
 </body>
