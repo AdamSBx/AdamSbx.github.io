@@ -20,7 +20,7 @@ canvas.addEventListener('mouseup',  function(event) {
 
 //=============================================== add touch event listeners
 canvas.addEventListener('touchstart', function(event) {
-    //event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
+    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = true;
     input(event);
 });
@@ -69,6 +69,8 @@ function input(event) {
     // -2 if pos was in the middle and -1 if on the outside
     mLastClickId = get_chord_btn_at_position(xLocalToClickedElement, yLocalToClickedElement);
 
+    alert(mLastClickId);
+
     if (mLastClickId > -1 && mLastClickId < 24) {
         mLastPressedBtnIdx = mLastClickId;
         drawCircleOfFifths();
@@ -79,8 +81,6 @@ function input(event) {
     if (mLastClickId == -1) {
         stringsRectInput(xLocalToClickedElement, yLocalToClickedElement);
     }
-
-    alert(mLastClickId);
 }
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
