@@ -1,15 +1,17 @@
+// NEEDS ACCESS TO "globals.js"
 
 const canvas = document.createElement("canvas");
 canvas.style.backgroundColor = "#242424";
 document.body.appendChild(canvas);
 
 //=============================================== add mouse event listeners
+// event.button describes the mouse button that was clicked 0 is left, 1 is middle, 2 is right
 canvas.addEventListener('mousedown',  function(event) {
     mMouseDown = true;
     input(event);
 });
 canvas.addEventListener('mousemove', function(event) {
-    if (mMouseDown) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
+    if (mLastClickId == -1 && mMouseDown) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
 });
 canvas.addEventListener('mouseup',  function(event) {
     mMouseDown = false;
@@ -23,8 +25,7 @@ canvas.addEventListener('touchstart', function(event) {
     input(event);
 });
 canvas.addEventListener('touchmove',  function(event) {
-    input(event); // xxx check if click was on strings to avoid chord buttn press via drag xxx
-    mLastTouchedString = -1;
+    if (mLastClickId == -1) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
 });
 canvas.addEventListener('touchend',  function(event) {
     mMouseDown = false;
@@ -33,7 +34,7 @@ canvas.addEventListener('touchend',  function(event) {
 
 //===============================================
 onload = function () {
-    setRect(0, 100, 400, 600);
+    setRect(0, 200, 400, 700);
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,9 +51,6 @@ const innerText = ["a","e","b","f#","c#","g#","d#","bb","f","c","g","d"];
 /** used to determine whether a "mousemove" event is a drag or not */
 let mMouseDown = false;
 
-/** 0 to 23 */
-let mLastPressedBtnIdx = 0;
-
 /** -1 = outside of circle, -2 = middle, 0 to 23 = chord buttons */
 let mLastClickId = 0;
 
@@ -61,38 +59,6 @@ const mFretsNum = 4;
 
 /** name of the font used for drawing the chord and note names */
 let fontName = "Arial";
-
-/** offset from the root notes (mRootNotes = [7,0,4,9]) */
-const mChords = [
-    // MAJOR CHORDS
-    [0,0,0,3], // C
-    [0,2,3,2], // G
-    [2,2,2,0], // D
-    [2,1,0,0], // A
-    [4,4,4,2], // E
-    [4,3,2,2], // B
-    [3,1,2,1], // F#
-    [1,1,1,4], // Db
-    [1,3,4,3], // Ab
-    [3,3,3,1], // Eb
-    [3,2,1,1], // Bb
-    [2,0,1,0], // F
-    // MINOR CHORDS
-    [2,0,0,0], // Am
-    [0,4,3,2], // Em
-    [4,2,2,2], // Bm
-    [2,1,2,4], // F#m
-    [1,1,0,4], // C#m
-    [1,3,4,2], // G#m
-    [3,3,2,1], // Ebm
-    [3,1,1,1], // Bbm
-    [1,0,1,3], // Fm
-    [0,3,3,3], // Cm
-    [0,2,3,1], // Gm
-    [2,2,1,0]  // Dm
-];
-
-const mRootNotes = [7,0,4,9]; // G, C, E, A
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -106,9 +72,7 @@ function input(event) {
     if (mLastClickId > -1 && mLastClickId < 24) {
         mLastPressedBtnIdx = mLastClickId;
         drawCircleOfFifths();
-        for (let s = 0; s < 4; s++) {
-            startStringVibration(s, s == 3); // s == 3 to save unnecessary redraws
-        }
+        startSequencePlayback(); // function from file webAudioProcessor.html update filename if changed xxxx
     }
 
     // strings panel
@@ -120,19 +84,21 @@ function input(event) {
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function stringsRectInput(x, y) {
-    let string = -1;
+    let stringNr = -1;
     let h = (stringsB - stringsT) / 3;
 
     for (let s = 0; s < 4; s++) {
         if (Math.abs(y - (stringsT + h * s)) < mTriggerSizeHorizontalMode) {
-            string = s;
+            stringNr = s;
             break;
         }
     }
-    if (string != mLastTouchedString) {
-        mLastTouchedString = string;
+    if (stringNr != mLastTouchedString) {
+        mLastTouchedString = stringNr;
 
-        if (string > -1) { startStringVibration(string, true); }
+        if (stringNr > -1) {
+            loadAndPlayAudio(stringNr)
+        }
     }
 }
 
@@ -339,7 +305,7 @@ function drawStrings() {
     }
 
     for (let i = 0; i < 4; i++) {
-        let idx = mRootNotes[i] + mChords[mLastPressedBtnIdx][i];
+        let idx = mRootNotesWithoutOct[i] + mChords[mLastPressedBtnIdx][i];
         y = stringsT + h * i;
         ctx.fillText(noteNames[idx], stringsL, y);
     }
@@ -365,7 +331,7 @@ function drawStrings() {
 }
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+/** visual only no audio is played via this function */
 function startStringVibration(stringNr_int, redraw_bool) {
     mVibrationStartTimes[stringNr_int] = Date.now();
     if (redraw_bool) { requestAnimationFrame(drawStrings); }

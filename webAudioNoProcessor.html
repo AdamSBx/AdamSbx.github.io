@@ -7,82 +7,32 @@
 </head>
 <body>
     <script src="addNavigationavBar.js"></script>
-
-    <h1> Web Audio WITHOUT Extending AudioWorkletProcessor (not using process()) </h1>
-
-    <button onclick="loadAndPlayAudio(0)">Play String 1</button>
-    <button onclick="loadAndPlayAudio(1)">Play String 2</button>
-    <button onclick="loadAndPlayAudio(2)">Play String 3</button>
-    <button onclick="loadAndPlayAudio(3)">Play String 4</button>
-    <button onclick="loadAndPlayAudio(-1)">Play All</button>
-
-    <button id="noteOnButton">Play All (down+touch)</button>
+    <script src="globals.js"></script>
+    <script src="cof_gui.js"></script>
 
     <script>
-        var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // NEEDS ACCESS TO "globals.js"
+
+        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        /** Array to hold the decoded audio buffers */
-        var audioBuffers = [];
+        /** decoded audio buffers in following order: G,C,E,A */
+        let mAudioBuffers = [];
 
-        const rootNotes = [60, 64, 67, 69, 60, 64, 67, 69];
-        const rootNoteFrequencies = [0,0,0,0,0,0,0,0];
-        for (let i = 0; i < rootNotes.length; i++) { rootNoteFrequencies[i] = noteToFreq(rootNotes[i]); }
-
-
-        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        // sequence stuff
-
-        // const arrayOfPairs = [
-        //     { key: 1, value: 'a' },
-        //     { key: 2, value: 'b' },
-        //     { key: 3, value: 'c' }
-        // ];
-
-        let mSequence = [0,1,2,3];
-        let mCurrentSequenceStep = 0;
-        let mTimeoutId = null;
-        let mLoopSequence = false;
-        let mStepDurationMs = 30;
-
-        function proceedSequencePlayback() {
-            clearTimeout(mTimeoutId);
-            loadAndPlayAudio(mSequence[mCurrentSequenceStep], null, false);
-
-            if (++mCurrentSequenceStep >= mSequence.length) {
-                if (mLoopSequence) {
-                    mCurrentSequenceStep = 0;
-                }
-                else {
-                    return; // return to avoid the following setTimeout() call
-                }
-            }
-
-            mTimeoutId = setTimeout(proceedSequencePlayback, mStepDurationMs);
-        }
-
-        function startSequencePlayback() {
-            clearTimeout(mTimeoutId);
-            mCurrentSequenceStep = 0;
-            proceedSequencePlayback();
-            //mTimeoutId = setTimeout(proceedSequencePlayback, mStepDurationMs);
-        }
-
-        function stopSequencePlayback() {
-            clearTimeout(mTimeoutId);
-        }
+        /** G,C,E,A,G,C,E,A twice for "down" and "up" audio samples (8 audio samples) */
+        const mRootNoteFrequencies = [];
+        for (let i = 0; i < mRootNotes.length; i++) { mRootNoteFrequencies[i] = noteToFreq(mRootNotes[i]); }
 
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         // Function to load audio files
         function loadAudioFiles() {
-            const audioFiles = ['C_Down','E_Down','G_Down','A_Down','C_Up','E_Up','G_Up','A_Up'];
+            const audioFiles = ['G_Down','C_Down','E_Down','A_Down','G_Up','C_Up','E_Up','A_Up'];
 
             for (let i = 0; i < audioFiles.length; i++) {
                 fetch("samples/" + audioFiles[i] + ".wav")
                     .then(response => response.arrayBuffer())
                     .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                    .then(decodedData => { audioBuffers[i] = decodedData; })
+                    .then(decodedData => { mAudioBuffers[i] = decodedData; })
                     .catch(error => console.error('Error loading audio file:', error));
             }
         }
@@ -92,43 +42,80 @@
 
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+        // sequence stuff
+
+        // const arrayOfPairs = [
+        //     { key: 1, value: 'a' },
+        //     { key: 2, value: 'b' }
+        // ];
+
+        let mSequence = [0,1,2,3];
+        let mCurrentSequenceStep = 0;
+        let mTimeoutId = null;
+        let mLoopSequence = false;
+        let mStepDurationMs = 25;
+
+        function proceedSequencePlayback() {
+            clearTimeout(mTimeoutId);
+
+            let stringNr = mSequence[mCurrentSequenceStep];
+            loadAndPlayAudio(stringNr, false);
+
+            if (++mCurrentSequenceStep >= mSequence.length) {
+                if (mLoopSequence) {
+                    mCurrentSequenceStep = 0;
+                }
+                else {
+                    return; // return to avoid the following setTimeout() call
+                }
+            }
+            mTimeoutId = setTimeout(proceedSequencePlayback, mStepDurationMs);
+        }
+
+        function startSequencePlayback() {
+            clearTimeout(mTimeoutId);
+            mCurrentSequenceStep = 0;
+            proceedSequencePlayback();
+        }
+
+        function stopSequencePlayback() {
+            clearTimeout(mTimeoutId);
+        }
+
+        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         // 8.1758 = the frequency of c-2 or key 0
         function noteToFreq(noteNr) { return 8.1758 * Math.pow(2.0, noteNr / 12.0); }
 
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        function getPlaybackRateForNote(stringNr, noteNr) {
-            return noteToFreq(noteNr) / rootNoteFrequencies[stringNr];
-        }
+        function getPlaybackRateForNote(bufferIdx, noteNr) { return noteToFreq(noteNr) / mRootNoteFrequencies[bufferIdx]; }
 
         //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        // Function to play audio from the buffers
-        function loadAndPlayAudio(stringNr, noteNr, isUpstroke) {
-            if (noteNr == null) { noteNr = rootNotes[stringNr]; } // root note as default if no noteNr was passed
-            let bufferIdx = (isUpstroke ? 4 : 0) + stringNr;
-            if (audioBuffers[bufferIdx]) {
+        function loadAndPlayAudio(stringNr, isUpstroke) {
+            stringNr = Math.max(Math.min(stringNr, 3), 0); // clamp stringNr
+            let noteNr = mRootNotes[stringNr] + mChords[mLastPressedBtnIdx][stringNr];
+
+            let bufferIdx; // use the audio sample that is closest to the note
+            if      (noteNr < 63) { bufferIdx = 1; } // C Sample
+            else if (noteNr < 66) { bufferIdx = 2; } // E Sample
+            else if (noteNr < 69) { bufferIdx = 0; } // G Sample
+            else                  { bufferIdx = 3; } // A Sample
+            if (isUpstroke) { v.mNoteBufferIdx += 4; } // 0 to 3 are down samples, 4 to 7 are up samples
+
+            if (mAudioBuffers[bufferIdx]) {
                 var source = audioContext.createBufferSource();
-                source.buffer = audioBuffers[bufferIdx];
-                source.playbackRate.value = getPlaybackRateForNote(stringNr, noteNr);
+                source.buffer = mAudioBuffers[bufferIdx];
+                source.playbackRate.value = getPlaybackRateForNote(bufferIdx, noteNr);
                 source.connect(audioContext.destination);
                 source.start(0);
             } else {
                 console.log('Audio file not loaded yet.');
             }
+
+            startStringVibration(stringNr, true); // funtion from "cof_gui.js" xxx update if renamed
         }
-
-        //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-        // event.button describes the mouse button that was clicked 0 is left, 1 is middle, 2 is right
-
-        document.getElementById('noteOnButton').addEventListener('mousedown',  function(event) {
-            startSequencePlayback();
-        });
-        document.getElementById('noteOnButton').addEventListener('touchstart', function(event) {
-            event.preventDefault(); // Prevent the default touch behavior to avoid triggering `click` or other unintended events
-            startSequencePlayback();
-        });
     </script>
 </body>
 </html>

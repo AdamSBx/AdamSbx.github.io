@@ -16,9 +16,6 @@ function switchPage(pageId) {
     if (pageId == 0) {
         window.location = "index.html";
     }
-    else if (pageId == 1) {
-        window.location = "simpleAudioClass.html";
-    }
     else if (pageId == 2) {
         window.location = "webAudioNoProcessor.html";
     }
@@ -39,12 +36,6 @@ var indexBtn = document.createElement("button");
 indexBtn.onclick = function() { switchPage(0); }
 indexBtn.innerHTML = "index.html";
 parentNode.appendChild(indexBtn);
-
-// add button
-var simpleAudioClassBtn = document.createElement("button");
-simpleAudioClassBtn.onclick = function() { switchPage(1); }
-simpleAudioClassBtn.innerHTML = "simpleAudioClass.html";
-parentNode.appendChild(simpleAudioClassBtn);
 
 // add button
 var webAudioNoProcessorBtn = document.createElement("button");
