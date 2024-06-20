@@ -69,8 +69,7 @@ function input(event) {
     // -2 if pos was in the middle and -1 if on the outside
     mLastClickId = get_chord_btn_at_position(xLocalToClickedElement, yLocalToClickedElement);
 
-    alert(event);
-    //alert(mLastClickId);
+    alert(xLocalToClickedElement);
 
     if (mLastClickId > -1 && mLastClickId < 24) {
         mLastPressedBtnIdx = mLastClickId;
