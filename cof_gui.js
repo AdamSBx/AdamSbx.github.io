@@ -20,7 +20,7 @@ canvas.addEventListener('mouseup',  function(event) {
 
 //=============================================== add touch event listeners
 canvas.addEventListener('touchstart', function(event) {
-    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
+    //event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = true;
     input(event);
 });
