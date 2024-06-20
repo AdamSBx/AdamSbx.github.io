@@ -23,6 +23,7 @@ canvas.addEventListener('touchstart', function(event) {
     event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = true;
     input(event);
+    alert("touch");
 });
 canvas.addEventListener('touchmove',  function(event) {
     if (mLastClickId == -1) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
