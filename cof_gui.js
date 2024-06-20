@@ -8,13 +8,16 @@ document.body.appendChild(canvas);
 // https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
 
 canvas.addEventListener('pointerdown',  function(event) {
+    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = true;
     input(event);
 });
 canvas.addEventListener('pointermove', function(event) {
+    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     if (mLastClickId == -1 && mMouseDown) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
 });
 canvas.addEventListener('pointerup',  function(event) {
+    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = false;
     mLastTouchedString = -1;
 });
