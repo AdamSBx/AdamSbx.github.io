@@ -2,11 +2,11 @@
 
 const canvas = document.createElement("canvas");
 canvas.style.backgroundColor = "#242424";
+canvas.style.touchAction = 'none';
 document.body.appendChild(canvas);
 
 //=============================================== add input event listeners
 // https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
-
 canvas.addEventListener('pointerdown',  function(event) {
     event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
     mMouseDown = true;
