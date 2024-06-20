@@ -4,30 +4,17 @@ const canvas = document.createElement("canvas");
 canvas.style.backgroundColor = "#242424";
 document.body.appendChild(canvas);
 
-//=============================================== add mouse event listeners
-// event.button describes the mouse button that was clicked 0 is left, 1 is middle, 2 is right
-canvas.addEventListener('mousedown',  function(event) {
+//=============================================== add input event listeners
+// https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
+
+canvas.addEventListener('pointerdown',  function(event) {
     mMouseDown = true;
     input(event);
 });
-canvas.addEventListener('mousemove', function(event) {
+canvas.addEventListener('pointermove', function(event) {
     if (mLastClickId == -1 && mMouseDown) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
 });
-canvas.addEventListener('mouseup',  function(event) {
-    mMouseDown = false;
-    mLastTouchedString = -1;
-});
-
-//=============================================== add touch event listeners
-canvas.addEventListener('touchstart', function(event) {
-    event.preventDefault(); // prevent the default touch behavior to avoid triggering `click` or other unintended events
-    mMouseDown = true;
-    input(event);
-});
-canvas.addEventListener('touchmove',  function(event) {
-    if (mLastClickId == -1) { input(event); } // xxx check if click was on strings to avoid chord buttn press via drag xxx
-});
-canvas.addEventListener('touchend',  function(event) {
+canvas.addEventListener('pointerup',  function(event) {
     mMouseDown = false;
     mLastTouchedString = -1;
 });
@@ -68,8 +55,6 @@ function input(event) {
 
     // -2 if pos was in the middle and -1 if on the outside
     mLastClickId = get_chord_btn_at_position(xLocalToClickedElement, yLocalToClickedElement);
-
-    alert(xLocalToClickedElement);
 
     if (mLastClickId > -1 && mLastClickId < 24) {
         mLastPressedBtnIdx = mLastClickId;
